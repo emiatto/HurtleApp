@@ -1,0 +1,273 @@
+﻿@model SelfRunning.Models.Hurtle.AttivitaDettaglioViewModel
+
+@{
+    ViewData["Title"] = "DettaglioAttivita";
+}
+
+<html>
+<head>
+    <style>
+        #statsTable {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+            #statsTable td, #statsTable th {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+
+            #statsTable tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+
+            #statsTable tr:hover {
+                background-color: #ddd;
+            }
+
+            #statsTable th {
+                padding-top: 12px;
+                padding-bottom: 12px;
+                text-align: left;
+                background-color: #046bea;
+                color: white;
+            }
+    </style>
+</head>
+<body>
+    <br />
+    <div class="container-fluid row col-sm-12">
+        <h3>Allenamento: @Model.Titolo, @Model.Localita, @Model.DataCreazione</h3>
+        <br />
+        <br />
+        @*@if (Model.Tipologia == 1)
+             {<h4>Tipologia: Allenamento</h4> }
+             else { <h4>Tipologia: Gara</h4>}
+            <br />*@
+    </div>
+    @*<div class="container-fluid; row; col-sm-3">
+        <h4>Data creazione: @Model.DataCreazione</h4>
+    </div>
+    <div class="container-fluid; row; col-sm-3">
+        <h4>Località: @Model.Localita</h4>
+    </div>*@
+
+    <div class="row">
+        <div class="col-sm-9">
+            <div id="map" style="height: 500px; width:100%;"></div>
+        </div>
+
+        <br />
+
+        <div class="col-sm-3">
+            <table class="table" id="statsTable">
+                <tr>
+                    <th>Statistiche</th>
+                </tr>
+                <tr>
+                    <td id="timeElapsed">Tempo impiegato: </td>
+                </tr>
+                <tr>
+                    <td id="lengthRun">Distanza percorsa: </td>
+                </tr>
+                <tr>
+                    <td id="avgSpeedStat">Velocità media: </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+
+@section scripts{
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+
+        var map;
+        var arrayLatLng = [];
+        var route=[];
+        var timestamps = [];
+        var differenceTime;
+        var lengthInKm;
+        var hours;
+        //var lengthInMeters = google.maps.geometry.spherical.computeLength(polyline.getPath());
+        //alert("polyline is " + lengthInMeters + " long");
+
+
+        function initialiseMap() {
+
+            markerArray = [
+                @foreach (var markerSelfie in Model.TelemetrieArray) {
+                    if (markerSelfie.UriSelfie != null)
+                    {
+                        <text>
+                        {
+
+                            display: true,
+                            lat: @markerSelfie.Latitudine.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            lng: @markerSelfie.Longitudine.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            uriselfie: '@markerSelfie.UriSelfie'
+
+                        },
+                    </text>
+                    }
+                 }
+            ];
+            
+
+            route = [
+            @foreach (var telemetria in Model.TelemetrieArray) {
+                <text>
+                {
+                    lat: @telemetria.Latitudine.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    lng: @telemetria.Longitudine.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                },
+                </text>
+             }
+            ];
+
+            route.forEach((v) => {
+                var latLng = new google.maps.LatLng(v.lat, v.lng);
+                arrayLatLng.push(latLng);
+
+            });
+
+            timestamps = [
+             @foreach (var istante in Model.TelemetrieArray) {
+                <text>
+                {
+                    time: new Date(@istante.Istante.ToUnixTimeMilliseconds()),
+                },
+                </text>
+              }
+            ];
+
+
+            map = new google.maps.Map(document.getElementById('map'),
+                {
+                    zoom: 8,
+                    center: { lat: route[0].lat, lng: route[0].lng }
+                });
+            getTelemetriesArray();
+
+            var icon = {
+                url: "https://www.flaticon.com/premium-icon/icons/svg/690/690840.svg", // url
+                scaledSize: new google.maps.Size(30, 30), // scaled size
+                origin: new google.maps.Point(0, 0), // origin
+                anchor: new google.maps.Point(0, 0) // anchor
+            };
+
+            startMarker = new google.maps.Marker({
+                position: { lat: route[0].lat, lng: route[0].lng },
+                map: map,
+                //draggable: true,
+                animation: google.maps.Animation.DROP,
+                title: 'Partenza',
+                icon: icon
+
+                //label: 'Partenza'
+
+            });
+            startMarker.addListener('click', function () {
+                toggleBounce(startMarker);
+            });
+
+            var infowindow = new google.maps.InfoWindow();
+
+            for (var i = 0; i < markerArray.length; i++) {
+                var selfieMarker = new google.maps.Marker({
+                    position: { lat: markerArray[i].lat, lng: markerArray[i].lng },
+                    map: map,
+                    animation: google.maps.Animation.DROP,
+                    title: 'Selfie'
+
+                });
+
+                google.maps.event.addListener(selfieMarker, 'click', (function (selfieMarker, i) {
+                    return function () {
+                        var content = '<img src="' + markerArray[i].uriselfie + '" style="width:300px;">';
+                        infowindow.setContent(content);
+                        infowindow.open(map, selfieMarker);
+                    }
+                })(selfieMarker, i));
+            }
+
+
+        }
+        google.maps.event.addDomListener(window, 'load', initialiseMap);
+
+        function toggleBounce(marker) {
+            if (marker.getAnimation() !== null) {
+                marker.setAnimation(null);
+            } else {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+            }
+        }
+
+        function getTelemetriesArray() {
+
+            var flightPath = new google.maps.Polyline({
+                path: route,
+                geodesic: true,
+                strokeColor: '#ffc266',
+                strokeOpacity: 1.0,
+                strokeWeight: 3
+            });
+
+            flightPath.setMap(map);
+            lengthInKm = (google.maps.geometry.spherical.computeLength(this.arrayLatLng))/1000;
+            var lengthInKmDiv = document.getElementById('lengthRun');
+            lengthInKmDiv.innerHTML += (lengthInKm).toFixed(2) + "Km";
+
+            var icon = {
+                url: "https://image.flaticon.com/icons/svg/985/985802.svg", // url
+                scaledSize: new google.maps.Size(35, 35), // scaled size
+                origin: new google.maps.Point(0, 0), // origin
+                anchor: new google.maps.Point(0, 0) // anchor
+            };
+
+            endMarker = new google.maps.Marker({
+                position: { lat: route[route.length - 1].lat, lng: route[route.length - 1].lng },
+                map: map,
+                //draggable: true,
+                animation: google.maps.Animation.DROP,
+                title: 'Arrivo',
+                icon: icon
+
+                //label: 'Partenza'
+
+            });
+            endMarker.addListener('click', function () {
+                toggleBounce(endMarker);
+            });
+            getTimeElapsed();
+            calculateAvgSpeed();
+        }
+
+        function getTimeElapsed()
+        {
+            var timeElapsedDiv = document.getElementById('timeElapsed');
+            var startTime = new Date(timestamps[0].time);
+            var endTime = new Date(timestamps[timestamps.length - 1].time);
+            differenceTime = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+            hours = Math.floor(differenceTime / 3600);
+            differenceTime %= 3600;
+            var minutes = Math.floor(differenceTime / 60);
+            var seconds = differenceTime % 60;
+            timeElapsedDiv.innerHTML += (hours > 9 ? hours : '0' + hours) + ':' + (minutes > 9 ? minutes : '0' + minutes) + ':' + (seconds > 9 ? seconds : '0' + seconds);
+
+        }
+
+        function calculateAvgSpeed()
+        {
+            var avgSpeedDiv = document.getElementById('avgSpeedStat');
+            var avgSpeed = lengthInKm / (differenceTime / 3600);
+            avgSpeedDiv.innerHTML += avgSpeed.toFixed(2) + "Km/h"; 
+        }
+
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlPvDHgLG7k47vIW0cRd-P5lwgjvRGivw&v=3&libraries=geometry&callback=initialiseMap"></script>
+
+}
+</html>

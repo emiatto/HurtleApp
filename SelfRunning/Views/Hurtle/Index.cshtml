@@ -1,0 +1,119 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+}
+
+<style>
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    nav {
+        margin: 0 !important;
+    }
+
+    .body-content {
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        position: relative !important;
+        display: flex !important;
+        flex-direction: row !important;
+    }
+
+    .training, .race {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff no-repeat center;
+        background-size: cover;
+        filter: blur(5px) saturate(0%);
+        z-index: -1;
+        transition: .3s filter;
+    }
+
+    .training .bg {
+        background-image: url(images/PIXNIO-179070.jpg)
+    }
+    .race .bg {
+        background-image: url(images/Orlen_Warsaw_Marathon_2014_al._KEN.JPG)
+    }
+
+    .image {
+        opacity: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+        transition: .5s ease;
+        backface-visibility: hidden;
+    }
+
+    .middle {
+        transition: .5s ease;
+        opacity: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .training:hover .bg, .race:hover .bg {
+        filter: blur(0) saturate(100%);
+    }
+
+    .training:hover .middle, .race:hover .middle{
+        opacity: 1;
+    }
+
+    .text {
+        background-color: #046bea;
+        font-size: 16px;
+        padding: 16px 32px;
+        cursor: pointer;
+    }
+
+    .text, .text:hover {
+        text-decoration: none;
+        color: white;
+    }
+
+    @@media (max-width: 720px) {
+        .body-content {
+            flex-direction: column !important;
+        }
+    }
+
+</style>
+<div class="training">
+    <div class="bg"></div>
+    <div class="middle">
+        <a href="@Url.Action("NuovaAttivita", "Attivita", new { type = "allenamento" })" class="text">Allenamento</a>
+    </div>
+</div>
+
+<div class="race">
+    <div class="bg"></div>
+    <div class="middle">
+        <a href="@Url.Action("NuovaAttivita", "Attivita", new { type = "gara" })" class="text">Gara</a>
+    </div>
+</div>
+

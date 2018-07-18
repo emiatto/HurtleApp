@@ -1,0 +1,126 @@
+﻿@model SelfRunning.Models.Hurtle.AttivitaInsertViewModel
+
+@{
+    ViewData["Title"] = "NuovaAttivita";
+}
+<style>
+    form {
+        margin: 0 auto;
+    }
+
+    .text, .text:hover {
+        text-decoration: none;
+        color: white;
+    }
+
+    #saveButton {
+        background-color: #046bea;
+    }
+
+</style>
+
+
+<div align="center">
+    <h2>Nuova attività</h2>
+    <br />
+</div>
+
+
+
+<form class="form-horizontal" asp-controller="Attivita" asp-action="NuovaAttivita" method="post">
+
+    @*<div asp-validation-summary="All"></div>*@
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="Titolo"></label>
+        <div class="col-sm-5">
+            <input asp-for="Titolo" class="form-control" />
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="Titolo"></span></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="IdRunner"></label>
+        <div class="col-sm-5">
+            <span>@Context.User.Identity.Name</span>
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="IdRunner"></span></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="DataCreazione"></label>
+        <div class="col-sm-5">
+            <input asp-for="DataCreazione" class="form-control" />
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="DataCreazione"></span></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="Localita"></label>
+        <div class="col-sm-5">
+            <input asp-for="Localita" class="form-control" id="localita" />
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="Localita"></span></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="Tipologia"></label>
+        <div class="col-sm-5">
+            <select asp-for="Tipologia" class="form-control">
+                <option value="1">Allenamento</option>
+                <option value="2">Gara</option>
+            </select>
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="Tipologia"></span></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-sm-4 control-label" asp-for="UriGara"></label>
+        <div class="col-sm-5">
+            <input asp-for="UriGara" class="form-control" />
+        </div>
+        <div class="col-sm-3"><span asp-validation-for="UriGara"></span></div>
+    </div>
+
+    <div class="row col-sm-5 col-sm-offset-4">
+        <button type="submit" id="saveButton" class="btn btn-primary" style="width: 100%;">Salva</button>
+    </div>
+</form>
+    
+
+@section scripts{
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlPvDHgLG7k47vIW0cRd-P5lwgjvRGivw" async defer></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            let geocoder = new google.maps.Geocoder();
+            navigator.geolocation.getCurrentPosition((position) => {
+                //ti geolocalizza
+                this.latlng = { lat: position.coords.latitude, lng: position.coords.longitude };
+                //salva ...
+
+                if (this.latlng) {
+                    //se c'è qualcosa dentro latlng
+
+                    geocoder.geocode({ 'location': this.latlng }, function (results, status) {
+                        //fa la geocodifica della latitidune e longitudine di latlng (quella corrente)
+
+                        if (results[0]) {
+                            var location = document.getElementById("localita");
+                            location.value = results[0].address_components[2].long_name;
+                            //$("#localita").val = results[0].address_components[2].long_name;
+                            //console.log('address', results[0].address_components[2].long_name);
+                            //inputLocalita.value += results[0]....
+                        } else {
+                            console.log('No results found');
+                        }
+                    });
+
+                }
+            });
+
+        })
+    </script>
+}

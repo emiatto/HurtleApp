@@ -1,0 +1,94 @@
+﻿@model IEnumerable<SelfRunning.Models.Hurtle.AttivitaViewModel>
+
+@{
+    ViewData["Title"] = "ElencoAttivita";
+}
+
+<h2>Elenco delle attivita</h2>
+
+<br />
+Crea una nuova attività
+<button type="submit" id="newActivityButton" class="btn btn-primary text">
+    <a href="@Url.Action("NuovaAttivita", "Attivita", new { type = "allenamento" })" class="text">Nuova Attività</a>
+</button>
+
+<br />
+<br />
+
+<style>
+    #activities {
+        font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+        #activities td, #activities th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #activities tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        #activities tr:hover {
+            background-color: #ddd;
+        }
+
+        #activities th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #046bea; /*4CAF50 - verde chiaro*/
+            color: white;
+        }
+
+    .text, .text:hover {
+        text-decoration: none;
+        color: white;
+    }
+
+    #newActivityButton {
+        background-color: #046bea;
+    }
+</style>
+
+<table id="activities">
+    <tr>
+        <th>Titolo attività</th>
+        <th>Località</th>
+        <th>Data creazione</th>
+        <th>Inizia</th>
+        <th>Dettaglio</th>
+        <th>Elimina</th>
+    </tr>
+
+    @foreach (var attivita in Model)
+    {
+        <tr>
+            <td>@attivita.Titolo</td>
+            <td>@attivita.Localita</td>
+            <td>@attivita.DataCreazione</td>
+
+            <td>
+                <a asp-controller="Hurtle"
+                   asp-action="Allenamento"
+                   asp-route-id="@attivita.Id">Inizia</a>
+            </td>
+
+            <td>
+                <a asp-controller="Attivita"
+                   asp-action="DettaglioAttivita"
+                   asp-route-id="@attivita.Id">Dettaglio</a>
+            </td>
+
+            <td>
+                <a asp-controller="Attivita"
+                   asp-action="Delete"
+                   asp-route-id="@attivita.Id"
+                   onclick = "return confirm('Sei sicuro di voler cancellare questa attività')">Elimina</a>
+            </td>
+
+        </tr>
+    }
+</table>

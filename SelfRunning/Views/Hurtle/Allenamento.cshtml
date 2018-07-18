@@ -1,0 +1,278 @@
+﻿@model SelfRunning.Models.Hurtle.AttivitaViewModel
+
+@{
+    ViewData["Title"] = "Allenamento";
+}
+
+
+
+<html>
+<head>
+    
+</head>
+<body>
+    <h4>Allenamento: @Model.Titolo, @Model.Localita</h4>
+
+    <div class="row container-fluid">
+        <button onclick="start()"  id="startStopwatch" class="btn btn-success col-xs-5">Inizia</button>
+        <label for="selfie" class="col-xs-2" align="center">
+            <img src="https://image.flaticon.com/icons/svg/3/3901.svg" style="width: 30px; height: auto;" />
+        </label>
+        <input id="selfie" type="file" accept="image/*;capture=camera" style="display: none !important;">
+        <button onclick="stop()" id="stopStopwatch" class="btn btn-danger col-xs-5">Termina</button>
+
+    </div>
+
+    <div align="center">
+        <h3 id="stopwatchDisplay" class="col-xs-offset-4 col-xs-4"><time>00:00:00</time></h3>
+    </div>
+    <br />
+
+    <div id="map" style="height:400px; width:100%;"></div>
+    <div id="position"></div>
+
+
+</body>
+@section scripts{
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+
+        var map;
+        var route = [];
+        var marker;
+        var marker2;
+        var selfie;
+        var selfieContent;
+
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(startPosition);
+            } else {
+                alert('Geolocalizzazione non disponibile');
+            }
+        }
+
+        function startPosition(position) {
+            var div = document.getElementById('position');
+
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+            route.push({ lat: lat, lng: lon });
+
+            var msg = {
+                latitudine: lat,
+                longitudine: lon,
+                istante: new Date().toISOString(),
+                idRunner: @Model.IdRunner,
+                idAttivita: @Model.Id,
+                //UriSelfie: selfie.getElementById(selfie)
+            };
+            sendTelemetries(msg);
+
+            //div.innerHTML = "POSIZIONE INIZIALE: ";
+            //div.innerHTML += '<br>' + lat + ',' + lon + '<br>' + new Date().toISOString() + '<br>';
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: lat, lng: lon },
+                zoom: 12
+            });
+
+            marker = new google.maps.Marker({
+                position: { lat: lat, lng: lon },
+                map: map,
+                //draggable: true,
+                animation: google.maps.Animation.DROP,
+                title: 'You are here!'
+
+            });
+            marker.addListener('click', toggleBounce);
+
+            marker2 = new google.maps.Marker({
+                position: { lat: lat, lng: lon },
+                map: map,
+                //animation: google.maps.Animation.DROP
+            });
+            //marker2.addListener('click', toggleBounce);
+        }
+
+        //funzione per l'animazione del marker
+        function toggleBounce() {
+            if (marker.getAnimation() !== null) {
+                marker.setAnimation(null);
+            } else {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+            }
+        }
+
+    var interval;
+    function start() {
+        if (!interval) {
+
+            interval = setInterval(getMoveLocation, 3000);
+            add();
+            timer();
+        }
+
+        
+    }
+
+    function stop() {
+        if (interval) {
+            clearInterval(interval);
+            clearStopwatch();
+        }
+
+    }
+
+    function getMoveLocation() {
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(movePosition);
+        } else {
+            alert('Geolocalizzazione non disponibile');
+        }
+    }
+
+    function movePosition(position) {
+        var div = document.getElementById('position');
+
+        //var lat = position.coords.latitude;
+        var lat = Math.floor((Math.random() * 50) + 1);
+        //var lon = position.coords.longitude;
+        var lon = Math.floor((Math.random() * 50) + 1);
+
+        route.push({ lat: lat, lng: lon });
+        console.log(route);
+
+        var selfieObj = document.getElementById("selfie");
+        if (selfieObj.files.length > 0)
+        {
+            var file = selfieObj.files[0];
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (evt) {
+                 selfieContent = evt.target.result;
+
+            }
+            selfieObj.value = '';
+            selfie = null;
+        }
+        else
+            selfie = null;
+
+        var msg = {
+                latitudine: lat,
+                longitudine: lon,
+                istante: new Date().toISOString(),
+                idRunner: @Model.IdRunner,
+                idAttivita: @Model.Id,
+                selfie: null
+        };
+
+        if (selfieContent) {
+            msg.selfie = selfieContent;
+
+            selfieContent = null;
+
+        }
+
+
+        console.log(msg);
+        sendTelemetries(msg);
+
+        marker2.setPosition({ lat: lat, lng: lon });
+
+        var flightPath = new google.maps.Polyline({
+            path: route,
+            geodesic: true,
+            strokeColor: '#ffc266',
+            strokeOpacity: 1.0,
+            strokeWeight: 3
+        });
+
+        flightPath.setMap(map);
+        //div.innerHTML += "POSIZIONE CORRENTE: ";
+        //div.innerHTML += '<br>' + lat + ',' + lon + '<br>' + new Date().toISOString() + '<br>';
+        map.setCenter({ lat: lat, lng: lon });
+
+    }
+
+    getLocation();
+
+        function sendTelemetries(msg) {
+        $.ajax({
+            type: "POST",
+            url: "https://hurtleselfrunningapi.azurewebsites.net/Hurtle/Attivita", /*htps://localhost:44320/ https://hurtleselfrunningapi.azurewebsites.net*/
+            data: JSON.stringify(msg),
+            // This is the important part
+            //xhrFields: {
+            //    withCredentials: true
+            //},
+            headers: {
+                'Accept': "application/json",
+                'Content-Type': "application/json"
+            },
+            dataType: "json",
+            success: function (data, stato) {
+                console.log(data);
+            }
+        });
+
+        //var http_request;
+        //http_request = new XMLHttpRequest();
+        //http_request.onreadystatechange = function () { /* .. */ };
+        //http_request.open("POST", "https://localhost:44320/geolocation/Attivita");
+        //http_request.withCredentials = true;
+        //http_request.setRequestHeader("Content-Type", "application/json");
+        //http_request.send(JSON.stringify(msg));
+
+    }
+
+
+
+        var stopwatchDisplay = document.getElementById('stopwatchDisplay'),
+            startStopwatch = document.getElementById('startStopwatch'),
+            stopStopwatch = document.getElementById('stopStopwatch'),
+            seconds = 0, minutes = 0, hours = 0,
+            t;
+
+        function add() {
+            seconds++;
+            if (seconds >= 60) {
+                seconds = 0;
+                minutes++;
+                if (minutes >= 60) {
+                    minutes = 0;
+                    hours++;
+                }
+            }
+
+            stopwatchDisplay.textContent = (hours ? (hours > 9 ? hours : "0" + hours) : "00") + ":" + (minutes ? (minutes > 9 ? minutes : "0" + minutes) : "00") + ":" + (seconds > 9 ? seconds : "0" + seconds);
+
+            //timer();
+        }
+        function timer() {
+            t = setInterval(add, 1000);
+        }
+        //timer();
+
+
+        /* Start button */
+        //startStopwatch.onclick = timer;
+
+        /* Stop button */
+        function clearStopwatch() {
+            clearTimeout(t);
+        }
+
+        ///* Clear button */
+        //clear.onclick = function () {
+        //    h1.textContent = "00:00:00";
+        //    seconds = 0; minutes = 0; hours = 0;
+        //}
+
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlPvDHgLG7k47vIW0cRd-P5lwgjvRGivw" async defer></script>
+}
+</html>
